@@ -55,6 +55,33 @@ export async function searchWikidata(query: string): Promise<WikidataSearchResul
     }))
 }
 
+const QID_PATTERN = /^Q\d+$/
+
+async function resolveQidLabels(qids: string[]): Promise<Map<string, string>> {
+  if (qids.length === 0) return new Map()
+  const params = new URLSearchParams({
+    action: 'wbgetentities',
+    ids: qids.join('|'),
+    props: 'labels',
+    languages: 'en|de',
+    format: 'json',
+    origin: '*',
+  })
+  const res = await fetch(`${WIKIDATA_API}?${params}`, {
+    headers: { 'User-Agent': USER_AGENT },
+  })
+  if (!res.ok) return new Map()
+  const data = await res.json() as {
+    entities: Record<string, { labels?: { en?: { value: string }; de?: { value: string } } }>
+  }
+  const map = new Map<string, string>()
+  for (const [qid, entity] of Object.entries(data.entities)) {
+    const label = entity.labels?.en?.value ?? entity.labels?.de?.value
+    if (label) map.set(qid, label)
+  }
+  return map
+}
+
 interface SparqlBinding {
   relType?: { value: string }
   targetId?: { value: string }
@@ -143,5 +170,25 @@ LIMIT 50
     })
   }
 
-  return { label, type: 'person', wikipediaTitle: wpTitle, relations }
+  const qidLabeled = relations.filter(r => QID_PATTERN.test(r.targetLabel))
+  if (qidLabeled.length > 0) {
+    const resolved = await resolveQidLabels(qidLabeled.map(r => r.targetId))
+    for (const rel of qidLabeled) {
+      const resolvedLabel = resolved.get(rel.targetId)
+      if (resolvedLabel) {
+        rel.targetLabel = resolvedLabel
+      } else {
+        const idx = relations.indexOf(rel)
+        relations.splice(idx, 1)
+      }
+    }
+  }
+
+  const resolvedLabel = QID_PATTERN.test(label) ? undefined : label
+  return {
+    label: resolvedLabel ?? qid,
+    type: 'person',
+    wikipediaTitle: wpTitle,
+    relations,
+  }
 }

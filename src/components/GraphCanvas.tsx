@@ -33,7 +33,7 @@ export function GraphCanvas({ nodes, edges, selectedNodeId, onNodeClick }: Props
       defs.append('marker')
         .attr('id', `arrow-${rel}`)
         .attr('viewBox', '0 -4 8 8')
-        .attr('refX', NODE_RADIUS + 10)
+        .attr('refX', 8)
         .attr('refY', 0)
         .attr('markerWidth', 6)
         .attr('markerHeight', 6)
@@ -41,7 +41,7 @@ export function GraphCanvas({ nodes, edges, selectedNodeId, onNodeClick }: Props
         .append('path')
         .attr('d', 'M0,-4L8,0L0,4')
         .attr('fill', color)
-        .attr('opacity', 0.6)
+        .attr('opacity', 0.7)
     })
 
     const root = d3.select(svg).append('g').attr('class', 'root')
@@ -128,11 +128,21 @@ export function GraphCanvas({ nodes, edges, selectedNodeId, onNodeClick }: Props
       .attr('pointer-events', 'none')
 
     simulation.on('tick', () => {
-      link
-        .attr('x1', d => (d.source as GraphNode).x ?? 0)
-        .attr('y1', d => (d.source as GraphNode).y ?? 0)
-        .attr('x2', d => (d.target as GraphNode).x ?? 0)
-        .attr('y2', d => (d.target as GraphNode).y ?? 0)
+      link.each(function(d) {
+        const s = d.source as GraphNode
+        const t = d.target as GraphNode
+        const dx = (t.x ?? 0) - (s.x ?? 0)
+        const dy = (t.y ?? 0) - (s.y ?? 0)
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist === 0) return
+        const rS = s.id === selectedNodeId ? SELECTED_RADIUS : NODE_RADIUS
+        const rT = t.id === selectedNodeId ? SELECTED_RADIUS : NODE_RADIUS
+        d3.select(this)
+          .attr('x1', (s.x ?? 0) + (dx / dist) * rS)
+          .attr('y1', (s.y ?? 0) + (dy / dist) * rS)
+          .attr('x2', (t.x ?? 0) - (dx / dist) * rT)
+          .attr('y2', (t.y ?? 0) - (dy / dist) * rT)
+      })
 
       nodeEl.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`)
     })
