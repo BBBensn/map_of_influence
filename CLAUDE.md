@@ -14,7 +14,7 @@ Ablageort: `~/Documents/Coding/Map of Influence/CLAUDE.md`
 
 - **Name:** map-of-influence
 - **Domain:** influence.bensn.me
-- **Version:** v1.0.0 (released 2026-05-21)
+- **Version:** v1.0.1 (released 2026-05-21)
 - **Status:** active
 - **Stack:** React + Vite + TypeScript + D3.js (d3-force + d3-zoom)
 - **Kein Backend in v1** — alle Daten direkt aus dem Frontend via Wikidata SPARQL + Wikipedia REST API

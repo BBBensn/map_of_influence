@@ -6,6 +6,19 @@ const USER_AGENT = 'map-of-influence/1.0 (benni@bensn.me)'
 
 const PERSON_QID = 'Q5'
 
+const NOISE_TERMS = [
+  'award', 'prize', 'medal', 'honor',
+  'book by', 'novel by', 'anthology', 'bibliography', 'discography', 'filmography',
+  'album by', 'film by', 'television series', 'tv series',
+  'list of', 'category of',
+  'newspaper', 'magazine',
+]
+
+function isNoise(description: string): boolean {
+  const lower = description.toLowerCase()
+  return NOISE_TERMS.some(term => lower.includes(term))
+}
+
 function resolveNodeType(instanceOfIds: string[]): NodeType {
   if (instanceOfIds.includes(PERSON_QID)) return 'person'
   if (instanceOfIds.length > 0) return 'concept'
@@ -17,7 +30,7 @@ export async function searchWikidata(query: string): Promise<WikidataSearchResul
     action: 'wbsearchentities',
     search: query,
     language: 'en',
-    limit: '5',
+    limit: '15',
     format: 'json',
     origin: '*',
   })
@@ -32,11 +45,14 @@ export async function searchWikidata(query: string): Promise<WikidataSearchResul
     search: Array<{ id: string; label: string; description?: string }>
   }
 
-  return (data.search ?? []).map(item => ({
-    id: item.id,
-    label: item.label,
-    description: item.description ?? '',
-  }))
+  return (data.search ?? [])
+    .filter(item => !isNoise(item.description ?? ''))
+    .slice(0, 5)
+    .map(item => ({
+      id: item.id,
+      label: item.label,
+      description: item.description ?? '',
+    }))
 }
 
 interface SparqlBinding {

@@ -14,8 +14,13 @@ export function SearchBar({ onSelect, disabled }: Props) {
   const [activeIndex, setActiveIndex] = useState(-1)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const ignoreNextRef = useRef(false)
 
   const search = useCallback(async (q: string) => {
+    if (ignoreNextRef.current) {
+      ignoreNextRef.current = false
+      return
+    }
     if (q.trim().length < 2) {
       setResults([])
       setOpen(false)
@@ -44,8 +49,10 @@ export function SearchBar({ onSelect, disabled }: Props) {
   }, [])
 
   function handleSelect(result: WikidataSearchResult) {
+    ignoreNextRef.current = true
     setQuery(result.label)
     setOpen(false)
+    setResults([])
     onSelect(result)
   }
 
